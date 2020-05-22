@@ -1,0 +1,24 @@
+articles
+  - node app - restful api
+    - dependency injection
+    - unit/integration testing
+  - dotnet core app - restful api
+    - dependency injection
+    - unit/integration testing
+  - react app - frontend
+    - make backend realtime
+  
+
+
+ts
+  todos
+    - nest new todos
+    - nest g co Todos controllers --flat
+    - nest g pipe yup-validation pipes
+
+
+    npx knex migrate:make
+
+    ambient transactions
+
+    app.enableShutdownHooks();

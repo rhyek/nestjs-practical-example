@@ -1,0 +1,12 @@
+{
+  "name": "sql-migrations",
+  "private": true,
+  "scripts": {},
+  "dependencies": {
+    "@types/node": "^14.0.4",
+    "knex": "^0.21.1",
+    "pg": "^8.2.1",
+    "ts-node": "^8.10.1",
+    "typescript": "^3.9.3"
+  }
+}
