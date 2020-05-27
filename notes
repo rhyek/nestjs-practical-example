@@ -22,3 +22,5 @@ ts
     ambient transactions
 
     app.enableShutdownHooks();
+
+  need to always install npm install class-transformer when using ValidationPipe

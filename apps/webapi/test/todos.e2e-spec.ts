@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import supertest from 'supertest';
+import { isValidISODateString } from 'iso-datestring-validator';
 import { AppModule } from '../src/app.module';
-import { response } from 'express';
-import { GetTodoDto } from '../src/todos/dtos/get-todo.dto';
+import { TodoFindAllDTO } from '../src/todos/dtos/todo-find-all.dto';
 
 describe('WebApi (e2e)', () => {
   let app: INestApplication;
@@ -12,13 +12,21 @@ describe('WebApi (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider('CONFIG')
-      .useValue({ dbUrl: 'postgres://test:test@localhost:9000/test' })
-      .compile();
+      imports: [
+        AppModule.register({
+          mikroOrmOptions: {
+            host: 'localhost',
+            port: 9000,
+            user: 'test',
+            password: 'test',
+            dbName: 'test',
+          },
+        }),
+      ],
+    }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe());
     await app.init();
     request = supertest(app.getHttpServer());
   }, 100_000);
@@ -37,7 +45,7 @@ describe('WebApi (e2e)', () => {
         });
     });
 
-    it('findOne throws BadRequestException for non-uuid ids', async () => {
+    it('findOne throws 400 for non-uuid ids', async () => {
       await request
         .get('/todos/1')
         .expect(400)
@@ -46,13 +54,13 @@ describe('WebApi (e2e)', () => {
         });
     });
 
-    it('findOne throws NotFoundException for unknown ids', async () => {
+    it('findOne throws 404 for unknown ids', async () => {
       await request
         .get('/todos/ac3c374a-69ea-4893-a538-27b5a0d06a35')
         .expect(404);
     });
 
-    it('create throws BadRequestException for an invalid payload', async () => {
+    it('create throws 400 for an invalid payload', async () => {
       await request
         .post('/todos')
         .send({
@@ -61,24 +69,36 @@ describe('WebApi (e2e)', () => {
         .expect(400);
     });
 
-    it('create fails for a payload with a longer-than-50 name', async () => {
+    it('create throws 400 for a payload with a longer-than-50 name', async () => {
       await request
         .post('/todos')
         .send({
           name: new Array(51).fill('a').join(''),
           description: 'description',
         })
-        .expect(400);
+        .expect(400)
+        .then(response => {
+          const message = response.body.message.find((m: string) =>
+            m.includes('shorter than or equal'),
+          );
+          expect(message).toBeDefined();
+        });
     });
 
-    it('create fails for a payload with a longer-than-100 description', async () => {
+    it('create throws 400 for a payload with a longer-than-100 description', async () => {
       await request
         .post('/todos')
         .send({
           name: 'name',
           description: new Array(101).fill('a').join(''),
         })
-        .expect(400);
+        .expect(400)
+        .then(response => {
+          const message = response.body.message.find((m: string) =>
+            m.includes('shorter than or equal'),
+          );
+          expect(message).toBeDefined();
+        });
     });
 
     it('create succeeds for a valid payload', async () => {
@@ -90,7 +110,7 @@ describe('WebApi (e2e)', () => {
         })
         .expect(201)
         .then(response => {
-          const { id: generatedId } = response.body as GetTodoDto;
+          const { id: generatedId } = response.body as TodoFindAllDTO;
           expect(generatedId).toBeTruthy();
           id = generatedId;
         });
@@ -105,9 +125,32 @@ describe('WebApi (e2e)', () => {
         });
     });
 
-    it('assign fails when the new assignee is longer than 100', async () => {
+    it('findOne returns a TodoFindOneDto for known ids', async () => {
+      await request.get(`/todos/${id}`).expect(200);
+    });
+
+    it('findOne returns a TodoFindOneDto and createdAt is a valid ISO 8601 date string', async () => {
+      await request
+        .get(`/todos/${id}`)
+        .expect(200)
+        .then(response => {
+          const { createdAt } = response.body;
+          expect(createdAt).toBeDefined();
+          expect(isValidISODateString(createdAt)).toBe(true);
+        });
+    });
+
+    it('assign throws 400 when the new assignee is longer than 100', async () => {
       const assignee = new Array(101).fill('a').join('');
-      await request.patch(`/todos/${id}/assign-to/${assignee}`).expect(400);
+      await request
+        .patch(`/todos/2/assign-to/${assignee}`)
+        .expect(400)
+        .then(response => {
+          const message = response.body.message.find((m: string) =>
+            m.includes('shorter than or equal'),
+          );
+          expect(message).toBeDefined();
+        });
     });
 
     it('assign correctly modifies assignee', async () => {
@@ -120,13 +163,18 @@ describe('WebApi (e2e)', () => {
         });
     });
 
-    it('assign fails when the todo is already assigned', async () => {
-      await request.patch(`/todos/${id}/assign-to/person-b`).expect(400);
+    it('assign throws 400 when the todo is already assigned', async () => {
+      await request
+        .patch(`/todos/${id}/assign-to/person-b`)
+        .expect(400)
+        .then(response => {
+          expect(response.body.message).toContain('Todo is already assigned');
+        });
     });
 
     it('remove succeeds for known id', async () => {
       const response = await request.get('/todos').expect(200);
-      const [todo] = response.body as GetTodoDto[];
+      const [todo] = response.body as TodoFindAllDTO[];
       const { id } = todo;
       await request.delete(`/todos/${id}`).expect(200);
       await request

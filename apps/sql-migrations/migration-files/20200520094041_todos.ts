@@ -8,7 +8,8 @@ export async function up(knex: Knex): Promise<void> {
       id uuid not null default uuid_generate_v4(),
       name varchar(50) not null,
       description varchar(100),
-      assignee varchar(50)
+      assignee varchar(50),
+      created_at timestamptz not null default now()
     );
   `);
 }
