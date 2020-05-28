@@ -173,9 +173,6 @@ describe('WebApi (e2e)', () => {
     });
 
     it('remove succeeds for known id', async () => {
-      const response = await request.get('/todos').expect(200);
-      const [todo] = response.body as TodoFindAllDTO[];
-      const { id } = todo;
       await request.delete(`/todos/${id}`).expect(200);
       await request
         .get('/todos')
