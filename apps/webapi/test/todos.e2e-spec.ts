@@ -3,7 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import supertest from 'supertest';
 import { isValidISODateString } from 'iso-datestring-validator';
 import { AppModule } from '../src/app.module';
-import { TodoFindAllDTO } from '../src/todos/dtos/todo-find-all.dto';
+import { TodoFindOneDTO } from '../src/todos/dtos/todo-find-one.dto';
 
 describe('WebApi (e2e)', () => {
   let app: INestApplication;
@@ -110,7 +110,7 @@ describe('WebApi (e2e)', () => {
         })
         .expect(201)
         .then(response => {
-          const { id: generatedId } = response.body as TodoFindAllDTO;
+          const { id: generatedId } = response.body as TodoFindOneDTO;
           expect(generatedId).toBeTruthy();
           id = generatedId;
         });
@@ -180,6 +180,31 @@ describe('WebApi (e2e)', () => {
         .then(response => {
           expect(response.body).toHaveLength(0);
         });
+    });
+
+    it(`for 100 concurrent assign requests on the same todo, one responds with 200, the rest 400 or 409`, async () => {
+      const response = await request
+        .post('/todos')
+        .send({
+          name: 'concurrency-test',
+          description: 'description',
+        })
+        .expect(201);
+      const { id } = response.body as TodoFindOneDTO;
+      const promises = new Array(100)
+        .fill(null)
+        .map((_, index) =>
+          request
+            .patch(`/todos/${id}/assign-to/person-${index}`)
+            .then(response => response.status),
+        );
+      const statuses = await Promise.all(promises);
+      const successfulCount = statuses.filter(status => status === 200).length;
+      const statusesAreValid = statuses.every(status =>
+        [200, 400, 409].includes(status),
+      );
+      expect(successfulCount).toBe(1);
+      expect(statusesAreValid).toBe(true);
     });
   });
 });

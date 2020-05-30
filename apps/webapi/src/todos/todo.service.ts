@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { BadRequestException } from '@nestjs/common';
 import { EntityManager } from 'mikro-orm';
 import { InjectRepository } from 'nestjs-mikro-orm';
@@ -32,14 +32,34 @@ export class TodoService {
   }
 
   async assignTo(id: string, newAssignee: string): Promise<void> {
-    const todo = await this.todoRepository.findOneOrFail(id);
-    const { assignee: currentAssignee } = todo;
-    if (currentAssignee && currentAssignee !== newAssignee) {
-      throw new BadRequestException('Todo is already assigned.');
-    }
-    todo.assignee = newAssignee;
-    await this.todoRepository.persist(todo);
-    await this.em.flush();
+    await this.em.transactional(async em => {
+      try {
+        // await em.execute('set transaction isolation level serializable') in v4
+        await em
+          .getConnection()
+          .execute(
+            'set transaction isolation level serializable',
+            [],
+            'run',
+            em.getTransactionContext(),
+          );
+        const todoRepository = em.getRepository(Todo);
+        const todo = await todoRepository.findOneOrFail(id);
+        const { assignee: currentAssignee } = todo;
+        if (currentAssignee && currentAssignee !== newAssignee) {
+          throw new BadRequestException('Todo is already assigned.');
+        }
+        todo.assignee = newAssignee;
+        await todoRepository.persist(todo);
+        await em.flush();
+      } catch (error) {
+        if (error.code === '40001') {
+          // serialization_failure
+          throw new ConflictException('Concurrency error. Please try again.');
+        }
+        throw error;
+      }
+    });
   }
 
   async remove(id: string): Promise<void> {

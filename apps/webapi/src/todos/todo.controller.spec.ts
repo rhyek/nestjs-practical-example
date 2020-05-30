@@ -4,6 +4,7 @@ import { getRepositoryToken } from 'nestjs-mikro-orm';
 import { v4 as uuid } from 'uuid';
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
+import { dataAbstractionLayerMockFactory } from '../mocks/data.mock';
 import { Todo } from './todo.entity';
 import { TodoRepository } from './todo.repository';
 import { TodoService } from './todo.service';
@@ -12,33 +13,30 @@ import { TodoFindAllDTO } from './dtos/todo-find-all.dto';
 import { TodoFindOneDTO } from './dtos/todo-find-one.dto';
 
 describe('TodoController', () => {
-  let todoRepositoryMock: jest.Mocked<TodoRepository>;
+  let todoRepository: jest.Mocked<TodoRepository>;
   let todoController: TodoController;
 
   beforeEach(async () => {
+    const {
+      entityManagerMock,
+      todoRepositoryMock,
+    } = dataAbstractionLayerMockFactory();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
           provide: EntityManager,
-          useValue: {
-            flush: () => {},
-          },
+          useValue: entityManagerMock,
         },
         {
           provide: getRepositoryToken(Todo),
-          useFactory: jest.fn(() => ({
-            findAll: jest.fn(),
-            findOne: jest.fn(),
-            findOneOrFail: jest.fn(),
-            persist: jest.fn(),
-          })),
+          useValue: todoRepositoryMock,
         },
         TodoService,
         TodoController,
       ],
     }).compile();
 
-    todoRepositoryMock = module.get(getRepositoryToken(Todo));
+    todoRepository = module.get(getRepositoryToken(Todo));
     todoController = module.get<TodoController>(TodoController);
   });
 
@@ -63,7 +61,7 @@ describe('TodoController', () => {
         created_at: new Date(),
       },
     ];
-    todoRepositoryMock.findAll.mockResolvedValue(todos);
+    todoRepository.findAll.mockResolvedValue(todos);
     const dtos = (await todoController.findAll()).map(pojo =>
       plainToClass(TodoFindAllDTO, pojo),
     );
@@ -84,7 +82,7 @@ describe('TodoController', () => {
       assignee: null,
       created_at: new Date(),
     };
-    todoRepositoryMock.findOneOrFail.mockResolvedValue(todo);
+    todoRepository.findOneOrFail.mockResolvedValue(todo);
     const dto = plainToClass(TodoFindOneDTO, await todoController.findOne('1'));
     const errors = await validate(dto, {
       whitelist: true,

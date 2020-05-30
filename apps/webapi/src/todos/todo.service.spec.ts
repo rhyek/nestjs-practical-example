@@ -1,38 +1,42 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { EntityManager } from 'mikro-orm';
 import { getRepositoryToken } from 'nestjs-mikro-orm';
+import { dataAbstractionLayerMockFactory } from '../mocks/data.mock';
 import { Todo } from './todo.entity';
 import { TodoRepository } from './todo.repository';
 import { TodoService } from './todo.service';
 
 describe('TodoService', () => {
+  let entityManager: jest.Mocked<EntityManager>;
+  let todoRepository: jest.Mocked<TodoRepository>;
   let todoService: TodoService;
-  let todoRepositoryMock: jest.Mocked<TodoRepository>;
 
   beforeEach(async () => {
+    const {
+      entityManagerMock,
+      todoRepositoryMock,
+    } = dataAbstractionLayerMockFactory();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
           provide: EntityManager,
-          useValue: {
-            flush: () => {},
-          },
+          useValue: entityManagerMock,
         },
         {
           provide: getRepositoryToken(Todo),
-          useFactory: jest.fn(() => ({
-            findAll: jest.fn(),
-            findOne: jest.fn(),
-            findOneOrFail: jest.fn(),
-            persist: jest.fn(),
-          })),
+          useValue: todoRepositoryMock,
         },
         TodoService,
       ],
     }).compile();
 
-    todoRepositoryMock = module.get(getRepositoryToken(Todo));
+    entityManager = module.get(EntityManager);
+    todoRepository = module.get(getRepositoryToken(Todo));
     todoService = module.get<TodoService>(TodoService);
   });
 
@@ -41,14 +45,14 @@ describe('TodoService', () => {
   });
 
   it('findById should internally call findOneOrFail instead of findOne', async () => {
-    todoRepositoryMock.findOneOrFail.mockRejectedValue(new NotFoundException());
+    todoRepository.findOneOrFail.mockRejectedValue(new NotFoundException());
     await expect(todoService.findById('1')).rejects.toThrow();
-    expect(todoRepositoryMock.findOne).not.toBeCalled();
-    expect(todoRepositoryMock.findOneOrFail).toBeCalledTimes(1);
+    expect(todoRepository.findOne).not.toBeCalled();
+    expect(todoRepository.findOneOrFail).toBeCalledTimes(1);
   });
 
   it('findById should throw NotFoundException for an unknown id', async () => {
-    todoRepositoryMock.findOneOrFail.mockRejectedValue(new NotFoundException());
+    todoRepository.findOneOrFail.mockRejectedValue(new NotFoundException());
     await expect(todoService.findById('1')).rejects.toBeInstanceOf(
       NotFoundException,
     );
@@ -62,26 +66,26 @@ describe('TodoService', () => {
       assignee: null,
       created_at: new Date(),
     };
-    todoRepositoryMock.findOneOrFail.mockResolvedValue(todo);
+    todoRepository.findOneOrFail.mockResolvedValue(todo);
     await expect(todoService.findById('1')).resolves.toEqual(todo);
   });
 
   it('assignTo should internally call findOneOrFail instead of findOne', async () => {
-    todoRepositoryMock.findOneOrFail.mockRejectedValue(new NotFoundException());
+    todoRepository.findOneOrFail.mockRejectedValue(new NotFoundException());
     await expect(todoService.assignTo('1', 'assignee-a')).rejects.toThrow();
-    expect(todoRepositoryMock.findOne).not.toBeCalled();
-    expect(todoRepositoryMock.findOneOrFail).toBeCalledTimes(1);
+    expect(todoRepository.findOne).not.toBeCalled();
+    expect(todoRepository.findOneOrFail).toBeCalledTimes(1);
   });
 
   it('assignTo should throw NotFoundException for an unknown id', async () => {
-    todoRepositoryMock.findOneOrFail.mockRejectedValue(new NotFoundException());
+    todoRepository.findOneOrFail.mockRejectedValue(new NotFoundException());
     await expect(
       todoService.assignTo('1', 'assignee-a'),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('assignTo should throw BadRequestException when the todo has a different assignee', async () => {
-    todoRepositoryMock.findOneOrFail.mockResolvedValue({
+    todoRepository.findOneOrFail.mockResolvedValue({
       id: '1',
       name: 'name',
       description: 'description',
@@ -93,8 +97,22 @@ describe('TodoService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('assignTo should throw ConflictException when postgres emits a serialization error', async () => {
+    todoRepository.findOneOrFail.mockResolvedValue({
+      id: '1',
+      name: 'name',
+      description: 'description',
+      assignee: 'assignee-a',
+      created_at: new Date(),
+    });
+    entityManager.flush.mockRejectedValue({ code: '40001' });
+    await expect(
+      todoService.assignTo('1', 'assignee-a'),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
   it('assignTo should succeed for a known id and unassigned todo', async () => {
-    todoRepositoryMock.findOneOrFail.mockResolvedValue({
+    todoRepository.findOneOrFail.mockResolvedValue({
       id: '1',
       name: 'name',
       description: 'description',
