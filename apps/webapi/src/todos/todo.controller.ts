@@ -30,7 +30,7 @@ export class TodoController {
         assignee,
       };
     });
-    return dtos as any;
+    return dtos;
   }
 
   @Get(':id')
