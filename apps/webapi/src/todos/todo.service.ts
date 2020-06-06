@@ -50,7 +50,6 @@ export class TodoService {
           throw new BadRequestException('Todo is already assigned.');
         }
         todo.assignee = newAssignee;
-        await todoRepository.persist(todo);
         await em.flush();
       } catch (error) {
         if (error.code === '40001') {
