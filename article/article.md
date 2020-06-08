@@ -1,4 +1,4 @@
-# Node.js, DI, Layered Architecture, and TDD: A Practicle Example
+# Node.js, DI, Layered Architecture, and TDD: A Practical Example
 
 ## Introduction
 
