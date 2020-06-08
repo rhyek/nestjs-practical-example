@@ -1,4 +1,4 @@
-# Node.js, DI, Layered Architecture, and TDD: A Short Walk-through
+# Node.js, DI, Layered Architecture, and TDD: A Practicle Example
 
 ## Introduction
 
@@ -28,7 +28,7 @@ Although MikroORM provides SQL migration capabilities, we will delegate that res
 
 ## The "D" in SOLID (Dependency Inversion)
 
-[SOLID](https://en.wikipedia.org/wiki/SOLID) is an acronym for a set of known software design principles, usually related to OOP, that help with making your code maintainable and flexible. Relevant to this article is the last one: **Dependency Inversion**. It talks about keeping relationships between modules or objects abstracted by way of interfaces establishing clear boundaries and hiding away implementations, so that those objects are **loosely coupled**. Doing so allows you to change the implementation of any interface without requiring you to alter any code outside it. The inversion happens when both the client and provider in the dependent relationship now defer to the interface. This [article](https://dzone.com/articles/solid-principles-dependency-inversion-principle) offers a succinct example.
+[SOLID](https://en.wikipedia.org/wiki/SOLID) is an acronym for a set of known software design principles, usually related to [Object-Oriented Programming (OOP)](https://en.wikipedia.org/wiki/Object-oriented_programming), that help with making your code maintainable and flexible. Relevant to this article is the last one: **Dependency Inversion**. It talks about keeping relationships between modules or objects abstracted by way of interfaces establishing clear boundaries and hiding away implementations, so that those objects are **loosely coupled**. Doing so allows you to change the implementation of any interface without requiring you to alter any code outside it. The inversion happens when both the client and provider in the dependent relationship now defer to the interface. This [article](https://dzone.com/articles/solid-principles-dependency-inversion-principle) offers a succinct example.
 
 The principle goes further on to say that the interfaces are defined and owned by the client module (high-level) and the provider (low-level, the dependency) will then strictly adhere to this contract and not the other way around. This [article](https://devonblog.com/software-development/solid-violations-in-the-wild-the-dependency-inversion-principle/) offers a great explanation to this concept.
 
@@ -61,7 +61,7 @@ Nevertheless, TypeScript offers an additional alternative: abstract classes. The
 
 ## Layered Architecture
 
-Sometimes called referred to as "Tiered Architecture", this pattern details a way for us to strictly identify aspects of our back-end applications that can be abstracted away with clear boundaries and are interrelated as a one-way chain of dependencies that ultimately satisfy user requests. This [article](https://dzone.com/articles/layered-architecture-is-good) provides a great run-down on the concept, but this is a good summary (ordered from high to low-level according to the **Dependency Inversion Principle**):
+Sometimes referred to as "Tiered Architecture", this pattern details a way for us to strictly identify aspects of our back-end applications that can be abstracted away with clear boundaries and are interrelated as a one-way chain of dependencies that ultimately satisfy user requests. This [article](https://dzone.com/articles/layered-architecture-is-good) provides a great run-down on the concept, but this is a good summary (ordered from high to low-level according to the **Dependency Inversion Principle**):
 |Layer |Description|
 |-------------|-|
 |Presentation |Deals with presenting the UI to the user. In most modern systems, this layer is handled by a separate application that consumes the API, such as our TODO app.|
@@ -70,6 +70,10 @@ Sometimes called referred to as "Tiered Architecture", this pattern details a wa
 |Persistence |This is generally a persistence abstraction over the underlying infrastructure detail which can be any assortment of SQL or NoSQL databases or cloud storage services. This level serves as a mediator between that infrastructure detail and our domain.<br />The general way of abstracting data access here is using the **Repository and Unit of Work Patterns**. They go hand-in-hand. More on this later.|
 
 _Note: For small projects, it is acceptable to combine our application and domain layers into one. This means our controllers could contain business logic and access our persistence abstractions directly. Nevertheless, it is important to maintain consistency throughout the project and if it grows in the future, refactoring could be difficult._
+
+## Test-Driven Development
+
+> TODO
 
 Ok, let's start building our TODO back-end!
 
@@ -347,7 +351,7 @@ describe("TodoService", () => {
 });
 ```
 
-Great! As you can see, we are mocking the `TodoRepository` dependency for our service. Remember that unit tests should be independent of one another and execution order shouldn't matter. Also, every test has it's own mock setup.
+Great! As you can see, we are mocking the `TodoRepository` dependency for our `TodoService`. Remember that unit tests should be independent of one another and execution order shouldn't matter. Also, every test has it's own mock setup.
 
 Now when we run our tests with `npm run test`, we should see the following output:
 
