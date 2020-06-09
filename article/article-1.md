@@ -6,9 +6,9 @@ I'm starting a two-part series of articles that will demonstrate how to build a 
 
 This first article will talk about [NestJS](https://nestjs.com/) which I think is currently the best choice for an enterprise-ready back-end framework due reasons including a well-defined and documented assortment of features and best-practices for implementing tried-and-true software design patterns as solutions to common tasks and problems. NestJS uses [Express.js](https://expressjs.com/) under the hood by default, so it's foundation is pretty solid.
 
-We will build a simple back-end for a TODO app and by the end of this article we will have seen what a typical project structure that enables/empowers TDD looks like while discussing concepts such as **Dependency Inversion**, **Layered Architecture**, and **Repository and Unit Of Work** along with some code samples. I will try to provide some insight into specific approaches I take wherever it feels most useful.
+We will build a simple back-end for a TODO app and by the end of this article we will have seen what a typical project structure that enables/empowers TDD looks like while discussing concepts such as **Dependency Inversion**, **Layered Architecture**, and **Repository and Unit Of Work** along with some code samples. I will try to share some insight into specific approaches I take wherever it feels most useful.
 
-While in this article we'll see examples of **Unit Tests**, **Test-Driven Development** and primarily **Integration Tests** with **Docker** will be the primary focus of the shorter part 2 of this series. Hopefully, this article will provide an adequate background to properly dive into TDD later on.
+While in this article we'll see examples of **Unit Tests**, **Test-Driven Development** and primarily **Integration Tests** with **Docker** will be the primary focus of the shorter part 2 of this series. Hopefully, this article will provide an adequate background and a good foundation to properly dive into TDD later on.
 
 The complete source code is available at https://github.com/rhyek/nestjs-practical-example.
 
@@ -557,6 +557,6 @@ Ok, now if we run our tests again with `npm run test` we should see the followin
 
 ## Conclusion
 
-Hoorah! and Phew! That was a bit of a long one. Hopefully after having read this article going through some concepts and looking at some sample code you will have a better understanding of what a good back-end application architecture needs in order to provide good maintainability, flexibility, and testability.
+Hoorah! and Phew! That was a bit of a long one. Hopefully, after having read this article going through some concepts and looking at some sample code, you will have a better understanding of what a good back-end application architecture needs in order to provide good maintainability, flexibility, and testability.
 
-We went over a few subjects such as **Dependency Inversion**, **Layered Architecture**, provided some useful tips along the way, gained some useful background, and in part 2 of this series we will focus a little on **Test-Driven Development** but especially how we can set up **Integration Testing** using **Docker** for our project. Hope to see you there!
+We went over a few subjects such as **Dependency Inversion**, **Layered Architecture**, gained useful background knowledge, build a solid architecture foundation and in part 2 of this series we will focus a little on **Test-Driven Development** but especially how we can set up **Integration Testing** using **Docker** for our project. Hope to see you there!
