@@ -30,7 +30,7 @@ export class TodoController {
         assignee,
       };
     });
-    return dtos as any;
+    return dtos;
   }
 
   @Get(':id')
@@ -51,10 +51,10 @@ export class TodoController {
 
   @Post()
   async create(@Body() values: TodoCreateDTO): Promise<TodoFindOneDTO> {
-    const created = await this.todoService.create(values);
-    const { id: todoId, name, description, assignee, created_at } = created;
+    const todo = await this.todoService.create(values);
+    const { id, name, description, assignee, created_at } = todo;
     const dto: TodoFindOneDTO = {
-      id: todoId,
+      id,
       name,
       description,
       assignee,

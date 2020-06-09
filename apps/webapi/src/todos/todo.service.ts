@@ -1,16 +1,16 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { BadRequestException } from '@nestjs/common';
 import { EntityManager } from 'mikro-orm';
-import { InjectRepository } from 'nestjs-mikro-orm';
 import { Todo } from './todo.entity';
-import { TodoRepository } from './todo.repository';
 import { TodoCreateDTO } from './dtos/todo-create.dto';
+import { TodoRepository } from './todo.repository';
 
 @Injectable()
 export class TodoService {
   constructor(
     private em: EntityManager,
-    @InjectRepository(Todo) private todoRepository: TodoRepository,
+    // @InjectRepository(Todo) private todoRepository: TodoRepository,
+    private todoRepository: TodoRepository,
   ) {}
 
   async findAll(): Promise<Todo[]> {
@@ -50,7 +50,6 @@ export class TodoService {
           throw new BadRequestException('Todo is already assigned.');
         }
         todo.assignee = newAssignee;
-        await todoRepository.persist(todo);
         await em.flush();
       } catch (error) {
         if (error.code === '40001') {
