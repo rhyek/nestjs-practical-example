@@ -1,12 +1,14 @@
-# Node.js, DI, Layered Architecture, and TDD: A Practical Example
+# Node.js, DI, Layered Architecture, and TDD: A Practical Example (Part 1)
 
 ## Introduction
 
-I'm starting a series of articles that will demonstrate how to build a RESTful API in Node.js utilizing a Test-Driven Development (TDD) approach. In later publications the same app will serve as a base for implementing Continuous Integration (with Github Actions) and then finally Continuous Deployment with Infrastructure as Code (using Pulumi) targeting Azure and Kubernetes.
+I'm starting a two-part series of articles that will demonstrate how to build a RESTful API in Node.js utilizing a **Test-Driven Development (TDD)** approach. In future publications the same app will serve as a base for implementing Continuous Integration (with Github Actions) and then finally Continuous Deployment with Infrastructure as Code (using Pulumi) targeting Azure and Kubernetes.
 
-This first article will talk about [NestJS](https://nestjs.com/) which I think is currently the best choice for an enterprise-ready back-end framework due reasons including a well-defined and documented assortment of features and best-practices for implementing tried-and-true software design patterns as solutions to common tasks and problems. NestJS uses Express.js under the hood by default, so it's foundation is pretty solid.
+This first article will talk about [NestJS](https://nestjs.com/) which I think is currently the best choice for an enterprise-ready back-end framework due reasons including a well-defined and documented assortment of features and best-practices for implementing tried-and-true software design patterns as solutions to common tasks and problems. NestJS uses [Express.js](https://expressjs.com/) under the hood by default, so it's foundation is pretty solid.
 
-We will build a simple back-end for a TODO app and by the end of this article we will have seen what a typical project structure that enables/empowers TDD looks like including concepts such as **Dependency Inversion**, **Layered Architecture**, and **Repository and Unit Of Work**. I will try to provide some insight into specific approaches I take wherever it feels most useful.
+We will build a simple back-end for a TODO app and by the end of this article we will have seen what a typical project structure that enables/empowers TDD looks like while discussing concepts such as **Dependency Inversion**, **Layered Architecture**, and **Repository and Unit Of Work** along with some code samples. I will try to provide some insight into specific approaches I take wherever it feels most useful.
+
+While in this article we'll see examples of **Unit Tests**, **Integration Tests** and in general the subject of **Test-Driven Development** will be the primary focus of part 2 of this series.
 
 The complete source code is available at https://github.com/rhyek/nestjs-practical-example.
 
@@ -49,7 +51,7 @@ In our case, the primary use-case for this functionality is to facilitate decoup
 
 ### Dependency Injection and TypeScript
 
-Now, Dependency Injection is a bit different in TypeScript than what people with C# or Java backgrounds are used to. As disccused, dependency abstractions are usually done with interfaces and it is with those same interfaces that you register a provider in an IoC container. Something like:
+Now, Dependency Injection is a bit different in TypeScript than what people with C# or Java backgrounds are used to. As disccused, dependency abstractions are done with interfaces and it is with those same interfaces that you register a provider in an IoC container. Something like:
 
 ```c#
 ioc.register(IDatabaseService, DatabaseService);
@@ -57,7 +59,7 @@ ioc.register(IDatabaseService, DatabaseService);
 
 As we all know, TypeScript compiles down to JavaScript and when this happens `interface` and `type` information is lost, so we can't use interfaces to register our providers, sadly. In JavaScript or TypeScript Dependency Injection libraries you will see that provider registration is done with either a string, a class, or a symbol.
 
-Nevertheless, TypeScript offers an additional alternative: abstract classes. They are not lost during compilation and in TypeScript you can use abstract classes as interfaces as well as for inheritance. So you can either `implement` or `extend` an abstract class. This is how Dependency Injection is usually done in **Angular**. Again, this is just an alternative and it is not usually what you'll see in **NestJS**'s documentation, but it's there if you need it.
+Nevertheless, TypeScript offers an additional alternative: abstract classes. They are not lost during compilation (just converted to normal classes) and in TypeScript you can use abstract classes as interfaces as well as for inheritance. So you can either `implement` or `extend` an abstract class. This is how Dependency Injection is usually done in **Angular**. Again, this is just an alternative and it is not usually what you'll see in **NestJS**'s documentation, but it's there if you need it.
 
 ## Layered Architecture
 
@@ -65,15 +67,11 @@ Sometimes referred to as "Tiered Architecture", this pattern details a way for u
 |Layer |Description|
 |-------------|-|
 |Presentation |Deals with presenting the UI to the user. In most modern systems, this layer is handled by a separate application that consumes the API, such as our TODO app.|
-|Application |Usually located at the **edge** and functions as the entry-point for handling user requests. In our case, the application layer will be our controllers and endpoints. This layer is meant to be as lean as possible and its responsibilities are: <ul> <li>validating user input</li><li>dispatching calls or commands to the appropriate **Service** method</li><li>transforming service-returned entities to [Data Transfer Objects (DTOs)](https://en.wikipedia.org/wiki/Data_transfer_object) for output/serialization</li></ul>**No business logic should go here.**|
+|Application |Usually located at the **edge** and functions as the entry-point for handling user requests. In our case, the application layer will be our controllers and endpoints. This layer is meant to be as lean as possible and its responsibilities are: <ul><li>executing access control policies (authentication, authorization, etc)</li><li>validating user input</li><li>dispatching calls or commands to the appropriate **Service** method</li><li>transforming service-returned entities to [Data Transfer Objects (DTOs)](https://en.wikipedia.org/wiki/Data_transfer_object) for output/serialization</li></ul>**No business logic should go here.**|
 |Domain |Contains all domain-level concerns such as business logic and **domain objects** (entities). Business logic is arranged into _services_ that provide methods that our controllers (or even other services) can call. These methods can receive either entities or DTOs as parameters, but should always return entities.<br />Transformation to DTOs should be done exclusively at the edge (our controllers), because that is where serialization happens and also because, depending on our project requirements, several controllers or services can call these methods and they will want to deal with the purest form of the data.<br />Direct data access is not done at this level. It is delegated to the next lower level abstraction that is the **Persistence Abstraction** layer.|
 |Persistence |This is generally a persistence abstraction over the underlying infrastructure detail which can be any assortment of SQL or NoSQL databases or cloud storage services. This level serves as a mediator between that infrastructure detail and our domain.<br />The general way of abstracting data access here is using the **Repository and Unit of Work Patterns**. They go hand-in-hand. More on this later.|
 
 _Note: For small projects, it is acceptable to combine our application and domain layers into one. This means our controllers could contain business logic and access our persistence abstractions directly. Nevertheless, it is important to maintain consistency throughout the project and if it grows in the future, refactoring could be difficult._
-
-## Test-Driven Development
-
-> TODO
 
 Ok, let's start building our TODO back-end!
 
@@ -205,8 +203,8 @@ If you check `src/app.module.ts`, you'll see that Nest automatically added `Todo
 ```ts
 @Module({
   imports: [],
-  controllers: [AppController],
   providers: [AppService, TodoService],
+  controllers: [AppController],
 })
 export class AppModule {}
 ```
@@ -220,7 +218,7 @@ Ok, let's paste this into `todo.service.ts`:
 export class TodoService {
   constructor(
     private em: EntityManager,
-    @InjectRepository(Todo) private todoRepository: EntityRepository<Todo>
+    private todoRepository: TodoRepository
   ) {}
 
   async findAll(): Promise<Todo[]> {
@@ -281,8 +279,6 @@ Let's write a couple of unit tests for our `TodoService` at `src/todos/todo.serv
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
 import { EntityManager } from "mikro-orm";
-import { getRepositoryToken } from "nestjs-mikro-orm";
-import { Todo } from "./todo.entity";
 import { TodoRepository } from "./todo.repository";
 import { TodoService } from "./todo.service";
 
@@ -310,14 +306,14 @@ describe("TodoService", () => {
           useValue: entityManagerMock,
         },
         {
-          provide: getRepositoryToken(Todo),
+          provide: TodoRepository,
           useValue: todoRepositoryMock,
         },
         TodoService,
       ],
     }).compile();
 
-    todoRepository = module.get(getRepositoryToken(Todo));
+    todoRepository = module.get(TodoRepository);
     service = module.get<TodoService>(TodoService);
   });
 
@@ -351,25 +347,205 @@ describe("TodoService", () => {
 });
 ```
 
-Great! As you can see, we are mocking the `TodoRepository` dependency for our `TodoService`. Remember that unit tests should be independent of one another and execution order shouldn't matter. Also, every test has it's own mock setup.
+Great! As you can see, we are replacing the `TodoRepository` dependency for our `TodoService` (which is our [System Under Test](https://en.wikipedia.org/wiki/System_under_test) or SUT) by providing a Jest mock to the test module's IoC container. As mentioned earlier, in TypeScript the tokens used for registering providers can vary in type allowing us to use strings, classes, or symbols. In this case you can see the token used to register and/or replace `TodoRepository` is itself.
+
+_Note: One thing to consider is that our use of `EntityManager` for transactions in `TodoService` and especially the way we mocked some of its methods (`getRepository`, `transactional`) in our unit tests potentially violates one principle of TDD: [Don't mock what you don't own](https://github.com/testdouble/contributing-tests/wiki/Don't-mock-what-you-don't-own). We will discuss that further in part 2 of this series._
 
 Now when we run our tests with `npm run test`, we should see the following output:
 
-<div style="display: flex; flex-direction: row; justify-content: center;"><img src="https://carlosgonzalez.dev/wp-content/uploads/2020/06/first-unit-tests.png" height="180"/></div>
+<div style="display: flex; flex-direction: row; justify-content: center;"><img src="https://carlosgonzalez.dev/wp-content/uploads/2020/06/first-unit-tests-1.png" height="200"/></div>
 
 Excellent. You can see examples of more test cases on github.
 
 ## Application Layer: Controller
 
-Let's start by generating our `TodoController`:
+Lastly, let's generate our `TodoController`:
 
 ```bash
 nest g controller todo todos --flat
 ```
 
-This will generate two files for us: `apps/webapi/src/todos/todo.controller.ts` and `apps/webapi/src/todos/todo.controller.spec.ts`. Any file ending in `.spec.ts` is considered a unit-test suite.
+This will generate two files for us:
 
-So far, our `TodoController` is an empty class. Let's add a couple of endpoints: `GET /` and `POST /`.
+- `src/todos/todo.controller.ts`
+- `src/todos/todo.controller.spec.ts`
 
-```typescript
+If you check `src/app.module.ts`, you'll see that Nest automatically added `TodoController` to our module:
+
+```ts
+@Module({
+  imports: [],
+  providers: [AppService, TodoService],
+  controllers: [AppController, TodoController],
+})
+export class AppModule {}
 ```
+
+Our `TodoController` is empty at the moment. Let's add a couple of endpoints. Remember that service methods can be called by many or no controller endpoints (internal use) or even other services. In our case we are matching service methods to controller endpoints for demonstration purposes.
+
+`src/todos/todo.controller.ts`:
+
+```ts
+import { Controller, Get, Post, Patch, Body, Param } from "@nestjs/common";
+import { TodoService } from "./todo.service";
+import { TodoCreateDTO } from "./dtos/todo-create.dto";
+import { TodoGetDTO } from "./dtos/todo-get.dto";
+import { AssignToParams } from "./params/assign-to.params";
+
+@Controller("todo")
+export class TodoController {
+  constructor(private todoService: TodoService) {}
+
+  @Get()
+  async findAll(): Promise<TodoGetDTO[]> {
+    const todos = await this.todoService.findAll();
+    const dtos = todos.map((todo) => {
+      const { id, name, description, assignee, created_at } = todo;
+      return {
+        id,
+        name,
+        description,
+        assignee,
+        createdAt: created_at,
+      };
+    });
+    return dtos;
+  }
+
+  @Post()
+  async create(@Body() values: TodoCreateDTO): Promise<TodoGetDTO> {
+    const todo = await this.todoService.create(values);
+    const { id, name, description, assignee, created_at } = todo;
+    const dto: TodoGetDTO = {
+      id,
+      name,
+      description,
+      assignee,
+      createdAt: created_at,
+    };
+    return dto;
+  }
+
+  @Patch(":id/assign-to/:assignee")
+  async assignTo(
+    @Param() { id, assignee: newAssignee }: AssignToParams
+  ): Promise<void> {
+    await this.todoService.assignTo(id, newAssignee);
+  }
+}
+```
+
+In this controller we are demonstrating some of the responsabilities of the application layer mentioned earlier. Our `create` method validates user input by using the DTO validation schema defined as `TodoCreateDTO`. All controller methods are invoking a method on the `TodoService` and in doing so we are delagating all business logic to it. Lastly, both `findAll` and `create` are transforming the domain objects returned by the services methods to a DTO ready for serialization and transport.
+
+`TodoCreateDTO` was defined earlier. Let's now see what `TodoGetDTO` looks like.
+
+`src/todos/dtos/todo-get.dto.ts`:
+
+```ts
+import { IsUUID, IsNotEmpty, IsOptional } from "class-validator";
+
+export class TodoGetDTO {
+  @IsUUID()
+  id: string;
+  @IsNotEmpty()
+  name: string;
+  @IsNotEmpty()
+  description: string;
+  @IsOptional()
+  assignee: string | null;
+  @IsNotEmpty()
+  createdAt: Date;
+}
+```
+
+Great. I recommend defining unit tests for DTO validation schemas that are used directly run validations and/or transformatios at runtime. `TodoGetDTO` is not used like that. The reason I defined it as a validation schema at all is because I want to use it for validation in my unit tests to make sure my controller endpoints are transforming my domain objects correctly. Let's take a look at that.
+
+```bash
+npm i uuid @types/uuid
+```
+
+`src/todos/todo.controller.spec.ts`:
+
+```ts
+import { Test, TestingModule } from "@nestjs/testing";
+import { v4 as uuid } from "uuid";
+import { validate } from "class-validator";
+import { plainToClass } from "class-transformer";
+import { Todo } from "./todo.entity";
+import { TodoService } from "./todo.service";
+import { TodoController } from "./todo.controller";
+import { TodoGetDTO } from "./dtos/todo-get.dto";
+
+describe("TodoController", () => {
+  let todoService: jest.Mocked<TodoService>;
+  let todoController: TodoController;
+
+  beforeEach(async () => {
+    const todoServiceMock: Partial<TodoService> = {
+      findAll: jest.fn(),
+    };
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        {
+          provide: TodoService,
+          useValue: todoServiceMock,
+        },
+        TodoController,
+      ],
+    }).compile();
+
+    todoService = module.get(TodoService);
+    todoController = module.get<TodoController>(TodoController);
+  });
+
+  it("should be defined", () => {
+    expect(todoController).toBeDefined();
+  });
+
+  it("findAll should convert domain objects returned from service to DTOs", async () => {
+    const todos: Todo[] = [
+      {
+        id: uuid(),
+        name: "name",
+        description: "description",
+        assignee: null,
+        created_at: new Date(),
+      },
+      {
+        id: uuid(),
+        name: "name",
+        description: "description",
+        assignee: "assignee",
+        created_at: new Date(),
+      },
+    ];
+    todoService.findAll.mockResolvedValue(todos);
+    const dtos = (await todoController.findAll()).map((pojo) =>
+      plainToClass(TodoGetDTO, pojo)
+    );
+    for (const dto of dtos) {
+      const errors = await validate(dto, {
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      });
+      expect(errors).toHaveLength(0);
+    }
+  });
+});
+```
+
+So here we can see that, similar to what we did earlier, we are mocking the dependencies of our SUT. For `TodoController` we have only one dependency we're interested in mocking. The interesting bit here is you could easily just mock `TodoRepository` again and provide that and use the real `TodoService`. We'd then have `TodoRepository (mock)` -> `TodoService (real)` -> `TodoController (System Under Test)` all automatically injected by NestJS. Mocks are usually reserved for dependencies that are external to our project's scope, things that require network or file IO, etc, anything that makes it harder to implement our tests.
+
+Another common approach, and the one being shown here, is to just mock anything in our project's scope that is external to our System Under Test.
+
+One thing we should be interested in testing is user input validation for our `create` method. As mentioned earlier, I've written unit tests for `TodoCreateDTO` at `https://github.com/rhyek/nestjs-practical-example/blob/master/apps/webapi/src/todos/dtos/todo-create.dto.spec.ts`. Those should be sufficient to test the validation schema in an isolated manner, but we may want to test the whole [Chain of Responsability](https://en.wikipedia.org/wiki/Chain-of-responsibility_pattern) in a more real-world scenario together as a whole. Something like making an HTTP request to an endpoint and make sure all access policies are applied, user validation is done, proper HTTP exceptions are raised when necessary, etc.
+
+On the other hand, calling our controller's `create` method directly in our unit tests does not execute any of that pipeline. It doesn't even validate input.
+
+The only way to test that pipeline is with **Integration Tests** which we will look at in the next article in this series.
+
+Ok, now if we run our tests again with `npm run test` we should see the following:
+
+<div style="display: flex; flex-direction: row; justify-content: center;"><img src="https://carlosgonzalez.dev/wp-content/uploads/2020/06/second-unit-tests.png" height="200"/></div>
+
+## Conclusion

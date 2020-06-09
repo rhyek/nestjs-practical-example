@@ -1,15 +1,16 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { BadRequestException } from '@nestjs/common';
-import { EntityManager, EntityRepository } from 'mikro-orm';
-import { InjectRepository } from 'nestjs-mikro-orm';
+import { EntityManager } from 'mikro-orm';
 import { Todo } from './todo.entity';
 import { TodoCreateDTO } from './dtos/todo-create.dto';
+import { TodoRepository } from './todo.repository';
 
 @Injectable()
 export class TodoService {
   constructor(
     private em: EntityManager,
-    @InjectRepository(Todo) private todoRepository: EntityRepository<Todo>,
+    // @InjectRepository(Todo) private todoRepository: TodoRepository,
+    private todoRepository: TodoRepository,
   ) {}
 
   async findAll(): Promise<Todo[]> {

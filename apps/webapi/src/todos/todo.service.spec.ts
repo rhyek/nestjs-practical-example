@@ -5,7 +5,6 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { EntityManager } from 'mikro-orm';
-import { getRepositoryToken } from 'nestjs-mikro-orm';
 import { Todo } from './todo.entity';
 import { TodoRepository } from './todo.repository';
 import { TodoService } from './todo.service';
@@ -40,7 +39,7 @@ describe('TodoService', () => {
           useValue: entityManagerMock,
         },
         {
-          provide: getRepositoryToken(Todo),
+          provide: TodoRepository,
           useValue: todoRepositoryMock,
         },
         TodoService,
@@ -48,7 +47,7 @@ describe('TodoService', () => {
     }).compile();
 
     entityManager = module.get(EntityManager);
-    todoRepository = module.get(getRepositoryToken(Todo));
+    todoRepository = module.get(TodoRepository);
     service = module.get<TodoService>(TodoService);
   });
 
