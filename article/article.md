@@ -349,7 +349,7 @@ describe("TodoService", () => {
 
 Great! As you can see, we are replacing the `TodoRepository` dependency for our `TodoService` (which is our [System Under Test](https://en.wikipedia.org/wiki/System_under_test) or SUT) by providing a Jest mock to the test module's IoC container. As mentioned earlier, in TypeScript the tokens used for registering providers can vary in type allowing us to use strings, classes, or symbols. In this case you can see the token used to register and/or replace `TodoRepository` is itself.
 
-_Note: One thing to consider is that our use of `EntityManager` for transactions in `TodoService` and especially the way we mocked some of its methods (`getRepository`, `transactional`) in our unit tests potentially violates one principle of TDD: [Don't mock what you don't own](https://github.com/testdouble/contributing-tests/wiki/Don't-mock-what-you-don't-own). We will discuss that further in part 2 of this series._
+One important thing to consider is that our use of `EntityManager` for transactions in `TodoService` and especially the way we mocked some of its methods (`getRepository`, `transactional`) in our unit tests potentially violates one principle of TDD: [Don't mock what you don't own](https://github.com/testdouble/contributing-tests/wiki/Don't-mock-what-you-don't-own). We will discuss that further in part 2 of this series.
 
 Now when we run our tests with `npm run test`, we should see the following output:
 
