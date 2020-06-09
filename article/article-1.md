@@ -23,8 +23,8 @@ The complete source code is available at https://github.com/rhyek/nestjs-practic
   - [Persistence Abstraction Layer](#persistence-abstraction-layer)
     - [Repository Pattern](#repository-pattern)
     - [Unit of Work Pattern](#unit-of-work-pattern)
-  - [Domain Layer: Service](#domain-layer:-service)
-  - [Application Layer: Controller](#application-layer:-controller)
+  - [Domain Layer: Service](#domain-layer-service)
+  - [Application Layer: Controller](#application-layer-controller)
 - [Conclusion](#conclusion)
 
 ## Overall Structure and Dependencies
