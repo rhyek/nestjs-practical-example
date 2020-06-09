@@ -8,21 +8,28 @@ This first article will talk about [NestJS](https://nestjs.com/) which I think i
 
 We will build a simple back-end for a TODO app and by the end of this article we will have seen what a typical project structure that enables/empowers TDD looks like while discussing concepts such as **Dependency Inversion**, **Layered Architecture**, and **Repository and Unit Of Work** along with some code samples. I will try to provide some insight into specific approaches I take wherever it feels most useful.
 
-While in this article we'll see examples of **Unit Tests**, **Integration Tests** and in general the subject of **Test-Driven Development** will be the primary focus of part 2 of this series.
+While in this article we'll see examples of **Unit Tests**, **Test-Driven Development** and primarily **Integration Tests** with **Docker** will be the primary focus of the shorter part 2 of this series. Hopefully, this article will provide an adequate background to properly dive into TDD later on.
 
 The complete source code is available at https://github.com/rhyek/nestjs-practical-example.
 
 ## Table of Contents
 
-- Overall Structure and Dependencies
-- The "D" in SOLID
-- Layered Architecture
-- Test-Driven Development
-- Initial Setup
+- [Overall Structure and Dependencies](#overall-structure-and-dependencies)
+- [The "D" in SOLID (Dependency Inversion)](<#the-"d"-in-solid-(dependency-inversion)>)
+  - [Dependency Injection in TypeScript](#dependency-injection-in-typescript)
+- [Layered Architecture](#layered-architecture)
+- [Initial Setup](#initial-setup)
+- [Layer Implementations](#persistence-abstraction-layer)
+  - [Persistence Abstraction Layer](#persistence-abstraction-layer)
+    - [Repository Pattern](#repository-pattern)
+    - [Unit of Work Pattern](#unit-of-work-pattern)
+  - [Domain Layer: Service](#domain-layer:-service)
+  - [Application Layer: Controller](#application-layer:-controller)
+- [Conclusion](#conclusion)
 
 ## Overall Structure and Dependencies
 
-Since this project will serve as the base for future articles to come, and will include two or more applications or microservices. We will use a single git repository in the monorepo style so that we may have a single source of truth for everything from application source code (back and front-end), SQL migration files, to later on our CI/CD and IaC code. This is essentially using the [GitOps](https://www.gitops.tech/) pattern. In practice this also means pull requests, code reviews, issue tracking, integration and end-to-end (e2e) tests are easier to configure and/or manage.
+Since this project will serve as the base for future articles to come, and will include two or more applications or microservices. We will use a single git repository in the monorepo style so that we may have a single source of truth for everything from application source code (back and perhaps in the future front-end), SQL migration files, to later on our CI/CD and IaC code. This is essentially using the [GitOps](https://www.gitops.tech/) pattern. In practice this also means pull requests, code reviews, issue tracking, integration and end-to-end (e2e) tests are easier to configure and/or manage.
 
 The main dependencies for our exercise will include [TypeScript](https://www.typescriptlang.org/), [NestJS](https://nestjs.com/), [Jest](https://jestjs.io/) as our unit and integration test-runner (included in Nest), PostgreSQL, [MikroORM](https://mikro-orm.io/) for use in our data persistence abstraction layer, and [Docker Compose](https://docs.docker.com/compose/) to help us run our integration tests.
 
@@ -49,7 +56,7 @@ And the IoC container having `TodoService` registered with it, will handle that 
 
 In our case, the primary use-case for this functionality is to facilitate decoupling certain aspects of our back-end. For example, we want to be able to separate our **business logic** from our **data persistence** so that by abstracting our data access we can at any time refactor one or the other, change what database we're using (from NoSQL to SQL, for example), or (as we'll see later on) swap in a **mock** during unit-tests, all the while not touching any business logic code. Having these characteristics in a project will greatly increase **testability**.
 
-### Dependency Injection and TypeScript
+### Dependency Injection in TypeScript
 
 Now, Dependency Injection is a bit different in TypeScript than what people with C# or Java backgrounds are used to. As disccused, dependency abstractions are done with interfaces and it is with those same interfaces that you register a provider in an IoC container. Something like:
 
@@ -534,7 +541,7 @@ describe("TodoController", () => {
 });
 ```
 
-So here we can see that, similar to what we did earlier, we are mocking the dependencies of our SUT. For `TodoController` we have only one dependency we're interested in mocking. The interesting bit here is you could easily just mock `TodoRepository` again and provide that and use the real `TodoService`. We'd then have `TodoRepository (mock)` -> `TodoService (real)` -> `TodoController (System Under Test)` all automatically injected by NestJS. Mocks are usually reserved for dependencies that are external to our project's scope, things that require network or file IO, etc, anything that makes it harder to implement our tests.
+So here we can see that, similar to what we did earlier, we are mocking the dependencies of our SUT. For `TodoController` we have only one dependency we're interested in mocking. The interesting bit here is you could easily just mock `TodoRepository` again and provide that and use the real `TodoService` which would paint a closer picture for a real world scenario. We'd have `TodoRepository (mock)` -> `TodoService (real)` -> `TodoController (System Under Test)` all automatically injected by NestJS. Mocks are usually reserved for dependencies that are external to our project's scope, things that require network or file IO, etc, anything that makes it harder to implement our tests. `TodoService` does not fit that description well.
 
 Another common approach, and the one being shown here, is to just mock anything in our project's scope that is external to our System Under Test.
 
@@ -549,3 +556,7 @@ Ok, now if we run our tests again with `npm run test` we should see the followin
 <div style="display: flex; flex-direction: row; justify-content: center;"><img src="https://carlosgonzalez.dev/wp-content/uploads/2020/06/second-unit-tests.png" height="200"/></div>
 
 ## Conclusion
+
+Hoorah! and Phew! That was a bit of a long one. Hopefully after having read this article going through some concepts and looking at some sample code you will have a better understanding of what a good back-end application architecture needs in order to provide good maintainability, flexibility, and testability.
+
+We went over a few subjects such as **Dependency Inversion**, **Layered Architecture**, provided some useful tips along the way, gained some useful background, and in part 2 of this series we will focus a little on **Test-Driven Development** but especially how we can set up **Integration Testing** using **Docker** for our project. Hope to see you there!
