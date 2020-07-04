@@ -7,6 +7,7 @@ import {
 import { MikroORM } from 'mikro-orm';
 import { MikroOrmModule, MikroOrmModuleOptions } from 'nestjs-mikro-orm';
 import { AppController } from './app.controller';
+import { DatabaseHelper } from './helpers/database.helper';
 import { TodoService } from './todos/todo.service';
 import { TodoController } from './todos/todo.controller';
 import { Todo } from './todos/todo.entity';
@@ -17,7 +18,7 @@ import { Todo } from './todos/todo.entity';
       entities: [Todo],
     }),
   ],
-  providers: [TodoService],
+  providers: [DatabaseHelper, TodoService],
   controllers: [AppController, TodoController],
 })
 export class AppModule implements OnApplicationShutdown {
