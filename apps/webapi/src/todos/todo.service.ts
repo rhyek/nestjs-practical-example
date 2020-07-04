@@ -1,5 +1,9 @@
-import { Injectable, ConflictException } from '@nestjs/common';
-import { BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { EntityManager } from 'mikro-orm';
 import { Todo } from './todo.entity';
 import { TodoCreateDTO } from './dtos/todo-create.dto';
@@ -28,6 +32,7 @@ export class TodoService {
     const todo = new Todo(name, description);
     await this.todoRepository.persist(todo);
     await this.em.flush();
+    Logger.log(todo);
     return todo;
   }
 

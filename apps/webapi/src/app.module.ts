@@ -1,51 +1,60 @@
+import path from 'path';
+import process from 'process';
 import {
   Module,
-  DynamicModule,
   NotFoundException,
   OnApplicationShutdown,
 } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MikroORM } from 'mikro-orm';
-import { MikroOrmModule, MikroOrmModuleOptions } from 'nestjs-mikro-orm';
+import { MikroOrmModule } from 'nestjs-mikro-orm';
+import { GraphQLModule } from '@nestjs/graphql';
 import { AppController } from './app.controller';
+import { configuration } from './config/configuration';
 import { TodoService } from './todos/todo.service';
 import { TodoController } from './todos/todo.controller';
 import { Todo } from './todos/todo.entity';
+import { Configuration } from './interfaces/configuration.interface';
+import { TodoResolver } from './todos/todo.resolver';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      envFilePath:
+        process.env.NODE_ENV === 'production'
+          ? undefined
+          : path.join(__dirname, '../../../dev/.env'),
+      load: [configuration],
+    }),
+    MikroOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService<Configuration>) => ({
+        type: 'postgresql',
+        entities: [Todo],
+        findOneOrFailHandler: () => new NotFoundException(),
+
+        ...configService.get('database')!,
+
+        // host: 'localhost',
+        // port: 9000,
+        // user: 'test',
+        // password: 'test',
+        // dbName: 'test',
+      }),
+    }),
     MikroOrmModule.forFeature({
       entities: [Todo],
     }),
+    GraphQLModule.forRoot({
+      autoSchemaFile: path.join(__dirname, '../schema.gql'),
+    }),
   ],
-  providers: [TodoService],
+  providers: [TodoService, TodoResolver],
   controllers: [AppController, TodoController],
 })
 export class AppModule implements OnApplicationShutdown {
   constructor(private orm: MikroORM) {}
-
-  static register(options?: {
-    mikroOrmOptions?: MikroOrmModuleOptions;
-  }): DynamicModule {
-    return {
-      module: AppModule,
-      imports: [
-        MikroOrmModule.forRoot({
-          entities: [Todo],
-
-          type: 'postgresql',
-          host: process.env.DB_HOST,
-          port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
-          user: process.env.DB_USER,
-          password: process.env.DB_PASS,
-          dbName: process.env.DB_DB,
-
-          findOneOrFailHandler: () => new NotFoundException(),
-
-          ...options?.mikroOrmOptions,
-        }),
-      ],
-    };
-  }
 
   async onApplicationShutdown(signal?: string | undefined): Promise<void> {
     await this.orm.close();
