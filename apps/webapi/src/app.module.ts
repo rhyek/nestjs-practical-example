@@ -11,6 +11,7 @@ import { MikroOrmModule } from 'nestjs-mikro-orm';
 import { GraphQLModule } from '@nestjs/graphql';
 import { AppController } from './app.controller';
 import { configuration } from './config/configuration';
+import { DatabaseHelper } from './helpers/database.helper';
 import { TodoService } from './todos/todo.service';
 import { TodoController } from './todos/todo.controller';
 import { Todo } from './todos/todo.entity';
@@ -50,7 +51,7 @@ import { TodoResolver } from './todos/todo.resolver';
       autoSchemaFile: path.join(__dirname, '../schema.gql'),
     }),
   ],
-  providers: [TodoService, TodoResolver],
+  providers: [DatabaseHelper, TodoService, TodoResolver],
   controllers: [AppController, TodoController],
 })
 export class AppModule implements OnApplicationShutdown {

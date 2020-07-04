@@ -37,13 +37,18 @@ Although MikroORM provides SQL migration capabilities, we will delegate that res
 
 ## The "D" in SOLID (Dependency Inversion)
 
-[SOLID](https://en.wikipedia.org/wiki/SOLID) is an acronym for a set of known software design principles, usually related to [Object-Oriented Programming (OOP)](https://en.wikipedia.org/wiki/Object-oriented_programming), that help with making your code maintainable and flexible. Relevant to this article is the last one: **Dependency Inversion**. It talks about keeping relationships between modules or objects abstracted by way of interfaces establishing clear boundaries and hiding away implementations, so that those objects are **loosely coupled**. Doing so allows you to change the implementation of any interface without requiring you to alter any code outside it. The inversion happens when both the client and provider in the dependent relationship now defer to the interface. This [article](https://dzone.com/articles/solid-principles-dependency-inversion-principle) offers a succinct example.
+[SOLID](https://en.wikipedia.org/wiki/SOLID) is an acronym for a set of known software design principles, usually related to [Object-Oriented Programming (OOP)](https://en.wikipedia.org/wiki/Object-oriented_programming), that help with making your code maintainable and flexible. Relevant to this article is the last one: [Dependency Inversion](https://en.wikipedia.org/wiki/Dependency_inversion_principle):
+
+> - High-level modules should not depend on low-level modules. Both should depend on abstractions (e.g. interfaces).
+> - Abstractions should not depend on details. Details (concrete implementations) should depend on abstractions.
+
+It talks about keeping relationships between modules or objects abstracted by way of interfaces establishing clear boundaries and hiding away implementations, so that those objects are **loosely coupled**. Doing so allows you to change the implementation of any interface without requiring you to alter any code outside it. The inversion happens when both the client and provider in the dependent relationship now defer to the interface. This [article](https://dzone.com/articles/solid-principles-dependency-inversion-principle) offers a succinct example.
 
 The principle goes further on to say that the interfaces are defined and owned by the client module (high-level) and the provider (low-level, the dependency) will then strictly adhere to this contract and not the other way around. This [article](https://devonblog.com/software-development/solid-violations-in-the-wild-the-dependency-inversion-principle/) offers a great explanation to this concept.
 
 Based on all this, **Dependency Injection** is a way for a client to declaratively require a dependency, usually via a class constructor in OOP, which is then satisfied or _injected_ by an **Inversion of Control (IoC)** container (whose responsibility is to orchestrate these dependencies once providers are configured) during client instantiation. A framework such as NestJS provides this mechanism for you out of the box. For example, for a `TodoController` to have `TodoService` injected to it you would do this:
 
-```ts
+```typescript
 class TodoController {
   private todoService: TodoService;
   constructor(todoService: TodoService) {
@@ -60,7 +65,7 @@ In our case, the primary use-case for this functionality is to facilitate decoup
 
 Now, Dependency Injection is a bit different in TypeScript than what people with C# or Java backgrounds are used to. As disccused, dependency abstractions are done with interfaces and it is with those same interfaces that you register a provider in an IoC container. Something like:
 
-```c#
+```csharp
 ioc.register(IDatabaseService, DatabaseService);
 ```
 
@@ -71,14 +76,16 @@ Nevertheless, TypeScript offers an additional alternative: abstract classes. The
 ## Layered Architecture
 
 Sometimes referred to as "Tiered Architecture", this pattern details a way for us to strictly identify aspects of our back-end applications that can be abstracted away with clear boundaries and are interrelated as a one-way chain of dependencies that ultimately satisfy user requests. This [article](https://dzone.com/articles/layered-architecture-is-good) provides a great run-down on the concept, but this is a good summary (ordered from high to low-level according to the **Dependency Inversion Principle**):
-|Layer |Description|
-|-------------|-|
-|Presentation |Deals with presenting the UI to the user. In most modern systems, this layer is handled by a separate application that consumes the API, such as our TODO app.|
-|Application |Usually located at the **edge** and functions as the entry-point for handling user requests. In our case, the application layer will be our controllers and endpoints. This layer is meant to be as lean as possible and its responsibilities are: <ul><li>executing access control policies (authentication, authorization, etc)</li><li>validating user input</li><li>dispatching calls or commands to the appropriate **Service** method</li><li>transforming service-returned entities to [Data Transfer Objects (DTOs)](https://en.wikipedia.org/wiki/Data_transfer_object) for output/serialization</li></ul>**No business logic should go here.**|
-|Domain |Contains all domain-level concerns such as business logic and **domain objects** (entities). Business logic is arranged into _services_ that provide methods that our controllers (or even other services) can call. These methods can receive either entities or DTOs as parameters, but should always return entities.<br />Transformation to DTOs should be done exclusively at the edge (our controllers), because that is where serialization happens and also because, depending on our project requirements, several controllers or services can call these methods and they will want to deal with the purest form of the data.<br />Direct data access is not done at this level. It is delegated to the next lower level abstraction that is the **Persistence Abstraction** layer.|
-|Persistence |This is generally a persistence abstraction over the underlying infrastructure detail which can be any assortment of SQL or NoSQL databases or cloud storage services. This level serves as a mediator between that infrastructure detail and our domain.<br />The general way of abstracting data access here is using the **Repository and Unit of Work Patterns**. They go hand-in-hand. More on this later.|
 
-_Note: For small projects, it is acceptable to combine our application and domain layers into one. This means our controllers could contain business logic and access our persistence abstractions directly. Nevertheless, it is important to maintain consistency throughout the project and if it grows in the future, refactoring could be difficult._
+| Layer        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Presentation | Deals with presenting the UI to the user. In most modern systems, this layer is handled by a separate application that consumes the API, such as our TODO app.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Application  | Usually located at the **edge** and functions as the entry-point for handling user requests. In our case, the application layer will be our controllers and endpoints. This layer is meant to be as lean as possible and its responsibilities are: <ul><li>executing access control policies (authentication, authorization, etc)</li><li>validating user input</li><li>dispatching calls or commands to the appropriate **Service** method</li><li>transforming service-returned entities to [Data Transfer Objects (DTOs)](https://en.wikipedia.org/wiki/Data_transfer_object) for output/serialization</li></ul>**No business logic should go here.**                                                                                                                                      |
+| Domain       | Contains all domain-level concerns such as business logic and **domain objects** (entities). Business logic is arranged into _services_ that provide methods that our controllers (or even other services) can call. These methods can receive either entities or DTOs as parameters, but should always return entities.<br />Transformation to DTOs should be done exclusively at the edge (our controllers), because that is where serialization happens and also because, depending on our project requirements, several controllers or services can call these methods and they will want to deal with the purest form of the data.<br />Direct data access is not done at this level. It is delegated to the next lower level abstraction that is the **Persistence Abstraction** layer. |
+| Persistence  | This is generally a persistence abstraction over the underlying infrastructure detail which can be any assortment of SQL or NoSQL databases or cloud storage services. This level serves as a mediator between that infrastructure detail and our domain.<br />The general way of abstracting data access here is using the **Repository and Unit of Work Patterns**. They go hand-in-hand. More on this later.                                                                                                                                                                                                                                                                                                                                                                               |
+
+<!-- prettier-ignore -->
+*Note: For small projects, it is acceptable to combine our application and domain layers into one. This means our controllers could contain business logic and access our persistence abstractions directly. Nevertheless, it is important to maintain consistency throughout the project and if it grows in the future, refactoring could be difficult.*
 
 Ok, let's start building our TODO back-end!
 
@@ -94,9 +101,10 @@ nest new webapi --package-manager npm
 
 This will give use the following structure:
 
-<div style="display: flex; flex-direction: row; justify-content: center;"><img src="https://carlosgonzalez.dev/wp-content/uploads/2020/06/initial-structure.png" height="350"/></div>
+<div style="display: flex; flex-direction: row; justify-content: center;"><img style="height: 450px; margin-bottom: 10px" src="https://carlosgonzalez.dev/wp-content/uploads/2020/06/initial-structure.png"/></div>
 
-_Note: From this point on all commands and paths will be relative to the `todos/apps/webapi` folder._
+<!-- prettier-ignore -->
+*Note: From this point on all commands and paths will be relative to the `todos/apps/webapi` folder.*
 
 Let's make a couple of changes to `tsconfig.json` so that TypeScript error checking is stricter and to allow for importing default exports from modules without star syntax:
 
@@ -130,7 +138,7 @@ touch src/todos/todo.repository.ts
 
 Paste this into `src/todos/todo.entity.ts`:
 
-```ts
+```typescript
 import { Entity, PrimaryKey, Property } from "mikro-orm";
 
 @Entity({ tableName: "todos" })
@@ -156,7 +164,7 @@ export class Todo {
 
 Paste this into `src/todos/todo.repository.ts`:
 
-```ts
+```typescript
 import { EntityRepository, Repository } from "mikro-orm";
 import { Todo } from "./todo.entity";
 
@@ -207,7 +215,7 @@ All files ending in `.spec.ts` are considered to be unit-test suites.
 
 If you check `src/app.module.ts`, you'll see that Nest automatically added `TodoService` to the IoC container for us:
 
-```ts
+```typescript
 @Module({
   imports: [],
   providers: [AppService, TodoService],
@@ -220,7 +228,7 @@ You'll notice we haven't registered or `TodoRepository` on it, yet. We'll get to
 
 Ok, let's paste this into `todo.service.ts`:
 
-```ts
+```typescript
 @Injectable()
 export class TodoService {
   constructor(
@@ -265,7 +273,7 @@ mkdir -p src/todos/dtos && touch src/todos/dtos/todo-create.dto.ts
 
 `src/todos/dtos/todo-create.dto.ts`:
 
-```ts
+```typescript
 import { MaxLength } from "class-validator";
 
 export class TodoCreateDTO {
@@ -282,7 +290,7 @@ You can see I've written some unit tests for that DTO at https://github.com/rhye
 
 Let's write a couple of unit tests for our `TodoService` at `src/todos/todo.service.spec.ts`:
 
-```ts
+```typescript
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
 import { EntityManager } from "mikro-orm";
@@ -379,7 +387,7 @@ This will generate two files for us:
 
 If you check `src/app.module.ts`, you'll see that Nest automatically added `TodoController` to our module:
 
-```ts
+```typescript
 @Module({
   imports: [],
   providers: [AppService, TodoService],
@@ -392,7 +400,7 @@ Our `TodoController` is empty at the moment. Let's add a couple of endpoints. Re
 
 `src/todos/todo.controller.ts`:
 
-```ts
+```typescript
 import { Controller, Get, Post, Patch, Body, Param } from "@nestjs/common";
 import { TodoService } from "./todo.service";
 import { TodoCreateDTO } from "./dtos/todo-create.dto";
@@ -448,7 +456,7 @@ In this controller we are demonstrating some of the responsabilities of the appl
 
 `src/todos/dtos/todo-get.dto.ts`:
 
-```ts
+```typescript
 import { IsUUID, IsNotEmpty, IsOptional } from "class-validator";
 
 export class TodoGetDTO {
@@ -473,7 +481,7 @@ npm i uuid @types/uuid
 
 `src/todos/todo.controller.spec.ts`:
 
-```ts
+```typescript
 import { Test, TestingModule } from "@nestjs/testing";
 import { v4 as uuid } from "uuid";
 import { validate } from "class-validator";

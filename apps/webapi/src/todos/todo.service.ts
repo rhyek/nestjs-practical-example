@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { EntityManager } from 'mikro-orm';
+import { DatabaseHelper } from '../helpers/database.helper';
 import { Todo } from './todo.entity';
 import { TodoCreateDTO } from './dtos/todo-create.dto';
 import { TodoRepository } from './todo.repository';
@@ -13,8 +14,8 @@ import { TodoRepository } from './todo.repository';
 export class TodoService {
   constructor(
     private em: EntityManager,
-    // @InjectRepository(Todo) private todoRepository: TodoRepository,
     private todoRepository: TodoRepository,
+    private dbHelper: DatabaseHelper,
   ) {}
 
   async findAll(): Promise<Todo[]> {
@@ -37,32 +38,14 @@ export class TodoService {
   }
 
   async assignTo(id: string, newAssignee: string): Promise<void> {
-    await this.em.transactional(async em => {
-      try {
-        // await em.execute('set transaction isolation level serializable') in v4
-        await em
-          .getConnection()
-          .execute(
-            'set transaction isolation level serializable',
-            [],
-            'run',
-            em.getTransactionContext(),
-          );
-        const todoRepository = em.getRepository(Todo);
-        const todo = await todoRepository.findOneOrFail(id);
-        const { assignee: currentAssignee } = todo;
-        if (currentAssignee && currentAssignee !== newAssignee) {
-          throw new BadRequestException('Todo is already assigned.');
-        }
-        todo.assignee = newAssignee;
-        await em.flush();
-      } catch (error) {
-        if (error.code === '40001') {
-          // serialization_failure
-          throw new ConflictException('Concurrency error. Please try again.');
-        }
-        throw error;
+    await this.dbHelper.tx(async em => {
+      const todoRepository = em.getRepository(Todo);
+      const todo = await todoRepository.findOneOrFail(id);
+      const { assignee: currentAssignee } = todo;
+      if (currentAssignee && currentAssignee !== newAssignee) {
+        throw new BadRequestException('Todo is already assigned.');
       }
+      todo.assignee = newAssignee;
     });
   }
 
