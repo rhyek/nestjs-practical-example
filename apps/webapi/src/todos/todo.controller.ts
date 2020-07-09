@@ -27,7 +27,9 @@ export class TodoController {
         id,
         name,
         description,
-        assignee,
+        assignee: assignee
+          ? { id: assignee.id, email: assignee.email, name: assignee.name }
+          : null,
       };
     });
     return dtos;
@@ -38,13 +40,15 @@ export class TodoController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<TodoFindOneDTO> {
     const todo = await this.todoService.findById(id);
-    const { id: todoId, name, description, assignee, created_at } = todo;
+    const { id: todoId, name, description, assignee, createdAt } = todo;
     const dto: TodoFindOneDTO = {
       id: todoId,
       name,
       description,
-      assignee,
-      createdAt: created_at,
+      assignee: assignee
+        ? { id: assignee.id, email: assignee.email, name: assignee.name }
+        : null,
+      createdAt: createdAt,
     };
     return dto;
   }
@@ -52,22 +56,22 @@ export class TodoController {
   @Post()
   async create(@Body() values: TodoCreateDTO): Promise<TodoFindOneDTO> {
     const todo = await this.todoService.create(values);
-    const { id, name, description, assignee, created_at } = todo;
+    const { id, name, description, assignee, createdAt } = todo;
     const dto: TodoFindOneDTO = {
       id,
       name,
       description,
       assignee,
-      createdAt: created_at,
+      createdAt: createdAt,
     };
     return dto;
   }
 
-  @Patch(':id/assign-to/:assignee')
+  @Patch(':todoId/assign-to/:assigneeUserId')
   async assignTo(
-    @Param() { id, assignee: newAssignee }: AssignToParams,
+    @Param() { todoId, assigneeUserId }: AssignToParams,
   ): Promise<void> {
-    await this.todoService.assignTo(id, newAssignee);
+    await this.todoService.assignTo(todoId, assigneeUserId);
   }
 
   @Delete(':id')

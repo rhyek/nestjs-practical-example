@@ -1,3 +1,4 @@
+import process from 'process';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { EntityManager } from 'mikro-orm';
 
@@ -26,5 +27,45 @@ export class DatabaseHelper {
         throw error;
       }
     });
+  }
+
+  private populateMap: Record<
+    string,
+    {
+      entities: object[];
+      promise: Promise<void>;
+    }
+  > = {};
+
+  async load<E extends object>(entity: E | E[], path: string | string[]) {
+    let entities: E[];
+    if (!Array.isArray(entity)) {
+      entities = [entity];
+    } else {
+      entities = entity;
+    }
+    const key = `${entities[0].constructor.name}:${path.toString()}`;
+    let mapEntry = this.populateMap[key];
+    if (!mapEntry) {
+      const entities: E[] = [];
+      const promise = new Promise<void>((resolve, reject) => {
+        process.nextTick(async () => {
+          delete this.populateMap[key];
+          try {
+            await this.em.populate(entities, path);
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
+      mapEntry = this.populateMap[key] = {
+        entities,
+        promise,
+      };
+    }
+    const { entities: es, promise } = mapEntry;
+    es.push(...entities);
+    await promise;
   }
 }

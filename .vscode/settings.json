@@ -1,0 +1,9 @@
+{
+  "terminal.integrated.env.osx": {
+    "DB_USER": "dev",
+    "DB_PASS": "dev",
+    "DB_HOST": "localhost",
+    "DB_PORT": "9000",
+    "DB_DB": "dev"
+  }
+}

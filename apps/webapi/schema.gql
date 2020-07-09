@@ -2,12 +2,12 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-type Todo {
+type User {
   id: String!
+  email: String!
   name: String!
-  description: String!
-  assignee: String
-  created_at: DateTime!
+  createdAt: DateTime!
+  todos: [Todo!]!
 }
 
 """
@@ -15,8 +15,47 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type Todo {
+  id: String!
+  name: String!
+  description: String!
+  assignee: User
+  createdAt: DateTime!
+}
+
 type Query {
-  todos: [Todo!]!
+  todos(orderBy: TodoOrderByInput, where: TodoWhereInput): [Todo!]!
+  users(where: UserWhereInput): [User!]!
+}
+
+input TodoOrderByInput {
+  name: String
+  description: String
+  assignee: UserOrderByInput
+}
+
+input UserOrderByInput {
+  email: String
+  name: String
+}
+
+input TodoWhereInput {
+  _and: TodoWhereInput
+  _or: TodoWhereInput
+  name: StringComparisonInput
+  assignee: UserWhereInput
+}
+
+input StringComparisonInput {
+  _eq: String
+  _contains: String
+}
+
+input UserWhereInput {
+  _and: UserWhereInput
+  _or: UserWhereInput
+  email: StringComparisonInput
+  name: StringComparisonInput
 }
 
 type Mutation {

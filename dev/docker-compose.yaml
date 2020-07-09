@@ -1,21 +1,21 @@
 version: "3"
 services:
   db:
-    container_name: dev_db
+    container_name: nestjspracticalexample_dev_db
     image: postgres:11.5
     environment:
       - POSTGRES_USER=dev
       - POSTGRES_PASSWORD=dev
     ports:
       - "9000:5432"
-  migrations:
-    container_name: dev_migrations
-    build: ../apps/sql-migrations
-    environment:
-      - DB_USER=dev
-      - DB_PASS=dev
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_DB=dev
-    depends_on:
-      - db
+  # migrations:
+  #   container_name: dev_migrations
+  #   build: ../apps/sql-migrations
+  #   environment:
+  #     - DB_USER=dev
+  #     - DB_PASS=dev
+  #     - DB_HOST=db
+  #     - DB_PORT=5432
+  #     - DB_DB=dev
+  #   depends_on:
+  #     - db

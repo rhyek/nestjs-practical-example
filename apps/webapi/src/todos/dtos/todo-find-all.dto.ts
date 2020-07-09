@@ -8,5 +8,5 @@ export class TodoFindAllDTO {
   @IsNotEmpty()
   description: string;
   @IsOptional()
-  assignee: string | null;
+  assignee: { id: string; email: string; name: string } | null;
 }

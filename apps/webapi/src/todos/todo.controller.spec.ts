@@ -42,14 +42,15 @@ describe('TodoController', () => {
         name: 'name',
         description: 'description',
         assignee: null,
-        created_at: new Date(),
+        createdAt: new Date(),
       },
       {
         id: uuid(),
         name: 'name',
         description: 'description',
-        assignee: 'assignee',
-        created_at: new Date(),
+        // assignee: 'assignee',
+        assignee: null,
+        createdAt: new Date(),
       },
     ];
     todoService.findAll.mockResolvedValue(todos);
@@ -71,7 +72,7 @@ describe('TodoController', () => {
       name: 'name',
       description: 'description',
       assignee: null,
-      created_at: new Date(),
+      createdAt: new Date(),
     };
     todoService.findById.mockResolvedValue(todo);
     const dto = plainToClass(TodoFindOneDTO, await todoController.findOne('1'));

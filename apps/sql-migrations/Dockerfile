@@ -13,4 +13,4 @@ COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
 
-CMD exec ./migrate.sh
+CMD exec ./wait_then_migrate.sh

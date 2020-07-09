@@ -1,5 +1,4 @@
 import path from 'path';
-import process from 'process';
 import {
   Module,
   NotFoundException,
@@ -11,20 +10,21 @@ import { MikroOrmModule } from 'nestjs-mikro-orm';
 import { GraphQLModule } from '@nestjs/graphql';
 import { AppController } from './app.controller';
 import { configuration } from './config/configuration';
+import { Configuration } from './interfaces/configuration.interface';
 import { DatabaseHelper } from './helpers/database.helper';
+import { Todo } from './todos/todo.entity';
 import { TodoService } from './todos/todo.service';
 import { TodoController } from './todos/todo.controller';
-import { Todo } from './todos/todo.entity';
-import { Configuration } from './interfaces/configuration.interface';
 import { TodoResolver } from './todos/todo.resolver';
+import { User } from './users/user.entity';
+import { UserService } from './users/user.service';
+import { UserController } from './users/user.controller';
+import { UserResolver } from './users/user.resolver';
+import { GqlToQueryBuilderHelper } from './helpers/gql-to-querybuilder.helper';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath:
-        process.env.NODE_ENV === 'production'
-          ? undefined
-          : path.join(__dirname, '../../../dev/.env'),
       load: [configuration],
     }),
     MikroOrmModule.forRootAsync({
@@ -32,8 +32,10 @@ import { TodoResolver } from './todos/todo.resolver';
       inject: [ConfigService],
       useFactory: async (configService: ConfigService<Configuration>) => ({
         type: 'postgresql',
-        entities: [Todo],
-        findOneOrFailHandler: () => new NotFoundException(),
+        entities: [User, Todo],
+        findOneOrFailHandler: entityName =>
+          new NotFoundException(`${entityName} not found`),
+        debug: true,
 
         ...configService.get('database')!,
 
@@ -45,14 +47,21 @@ import { TodoResolver } from './todos/todo.resolver';
       }),
     }),
     MikroOrmModule.forFeature({
-      entities: [Todo],
+      entities: [User, Todo],
     }),
     GraphQLModule.forRoot({
       autoSchemaFile: path.join(__dirname, '../schema.gql'),
     }),
   ],
-  providers: [DatabaseHelper, TodoService, TodoResolver],
-  controllers: [AppController, TodoController],
+  providers: [
+    DatabaseHelper,
+    GqlToQueryBuilderHelper,
+    UserService,
+    UserResolver,
+    TodoService,
+    TodoResolver,
+  ],
+  controllers: [AppController, UserController, TodoController],
 })
 export class AppModule implements OnApplicationShutdown {
   constructor(private orm: MikroORM) {}

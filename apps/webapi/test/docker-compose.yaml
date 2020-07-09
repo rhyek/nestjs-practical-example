@@ -1,15 +1,15 @@
-version: '3'
+version: "3"
 services:
   db:
-    container_name: test_db
+    container_name: nestjspracticalexample_test_db
     image: postgres:11.5
     environment:
       - POSTGRES_USER=test
       - POSTGRES_PASSWORD=test
     ports:
-      - '9000:5432'
+      - "9000:5432"
   migrations:
-    container_name: test_migrations
+    container_name: nestjspracticalexample_test__migrations
     build: ../../sql-migrations
     environment:
       - DB_USER=test

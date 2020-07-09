@@ -1,14 +1,10 @@
-import {
-  Injectable,
-  ConflictException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { EntityManager } from 'mikro-orm';
 import { DatabaseHelper } from '../helpers/database.helper';
 import { Todo } from './todo.entity';
-import { TodoCreateDTO } from './dtos/todo-create.dto';
 import { TodoRepository } from './todo.repository';
+import { TodoCreateDTO } from './dtos/todo-create.dto';
+import { User } from '../users/user.entity';
 
 @Injectable()
 export class TodoService {
@@ -19,7 +15,7 @@ export class TodoService {
   ) {}
 
   async findAll(): Promise<Todo[]> {
-    const todos = await this.todoRepository.findAll();
+    const todos = await this.todoRepository.findAll({ populate: ['assignee'] });
     return todos;
   }
 
@@ -33,14 +29,15 @@ export class TodoService {
     const todo = new Todo(name, description);
     await this.todoRepository.persist(todo);
     await this.em.flush();
-    Logger.log(todo);
     return todo;
   }
 
-  async assignTo(id: string, newAssignee: string): Promise<void> {
+  async assignTo(id: string, newAssigneeUserId: string): Promise<void> {
     await this.dbHelper.tx(async em => {
       const todoRepository = em.getRepository(Todo);
-      const todo = await todoRepository.findOneOrFail(id);
+      const userRepository = em.getRepository(User);
+      const todo = await todoRepository.findOneOrFail(id, ['assignee']);
+      const newAssignee = await userRepository.findOneOrFail(newAssigneeUserId);
       const { assignee: currentAssignee } = todo;
       if (currentAssignee && currentAssignee !== newAssignee) {
         throw new BadRequestException('Todo is already assigned.');
