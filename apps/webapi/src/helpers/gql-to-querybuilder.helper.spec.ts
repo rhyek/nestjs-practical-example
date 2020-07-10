@@ -1,5 +1,5 @@
 import { TestingModule, Test } from '@nestjs/testing';
-import { MikroORM } from 'mikro-orm';
+import { MikroORM, QueryBuilder } from 'mikro-orm';
 import { MetadataStorage } from 'mikro-orm/dist/metadata';
 import { MikroOrmModule } from 'nestjs-mikro-orm';
 import { Todo } from '../todos/todo.entity';
@@ -50,14 +50,16 @@ describe('GqlToQueryBuilderHelper', () => {
   });
   describe('generateOrderByObject', () => {
     it('a direct field', () => {
+      const entityName = 'User';
+      const qb = orm.em.createQueryBuilder(entityName);
       const joinConfigs: any[] = [];
       const orderByInput = { name: 'asc' };
       const expectedOrderByObj = {
         name: 'asc',
       };
       const orderByObj = gqlToQueryBuilderHelper['generateOrderByObject'](
-        metadata,
-        'Todo',
+        qb,
+        entityName,
         orderByInput,
         [],
       );
@@ -65,15 +67,17 @@ describe('GqlToQueryBuilderHelper', () => {
       expect(orderByObj).toEqual(expectedOrderByObj);
     });
     it('a direct and a nested field', () => {
+      const entityName = 'Todo';
+      const qb = orm.em.createQueryBuilder(entityName);
       const joinConfigs: any[] = [];
       const orderByInput = { name: 'asc', assignee: { name: 'desc' } };
       const expectedOrderByObj = {
         name: 'asc',
-        'assignee.name': 'desc',
+        'e1.name': 'desc',
       };
       const orderByObj = gqlToQueryBuilderHelper['generateOrderByObject'](
-        metadata,
-        'Todo',
+        qb,
+        entityName,
         orderByInput,
         joinConfigs,
       );
@@ -83,32 +87,38 @@ describe('GqlToQueryBuilderHelper', () => {
   });
   describe('generateWhereObj', () => {
     it('one field with _eq operator', () => {
+      const entityName = 'User';
+      const qb = orm.em.createQueryBuilder(entityName);
       const value = 'carlos.rgn@gmail.com';
       const whereInput = { email: { _eq: value } };
       const expectedWhereObject = { $and: [{ email: { $eq: value } }] };
       const whereObj = gqlToQueryBuilderHelper['generateWhereObject'](
-        metadata,
-        'User',
+        qb,
+        entityName,
         whereInput,
         [],
       );
       expect(whereObj).toEqual(expectedWhereObject);
     });
     it('one field with _contains operator', () => {
+      const entityName = 'User';
+      const qb = orm.em.createQueryBuilder(entityName);
       const value = 'Carlos';
       const whereInput = { email: { _contains: value } };
       const expectedWhereObject = {
         $and: [{ email: { $like: `%${value}%` } }],
       };
       const whereObj = gqlToQueryBuilderHelper['generateWhereObject'](
-        metadata,
-        'User',
+        qb,
+        entityName,
         whereInput,
         [],
       );
       expect(whereObj).toEqual(expectedWhereObject);
     });
     it('two fields', () => {
+      const entityName = 'User';
+      const qb = orm.em.createQueryBuilder(entityName);
       const whereInput = {
         email: { _eq: 'email' },
         name: { _contains: 'name' },
@@ -117,14 +127,16 @@ describe('GqlToQueryBuilderHelper', () => {
         $and: [{ email: { $eq: 'email' } }, { name: { $like: '%name%' } }],
       };
       const whereObj = gqlToQueryBuilderHelper['generateWhereObject'](
-        metadata,
-        'User',
+        qb,
+        entityName,
         whereInput,
         [],
       );
       expect(whereObj).toEqual(expectedWhereObject);
     });
     it('one field and one OR operator with two fields', () => {
+      const entityName = 'User';
+      const qb = orm.em.createQueryBuilder(entityName);
       const whereInput = {
         email: { _eq: '1' },
         _or: {
@@ -150,14 +162,16 @@ describe('GqlToQueryBuilderHelper', () => {
         ],
       };
       const whereObj = gqlToQueryBuilderHelper['generateWhereObject'](
-        metadata,
-        'User',
+        qb,
+        entityName,
         whereInput,
         [],
       );
       expect(whereObj).toEqual(expectedWhereObject);
     });
     it('one field and a relationship with one field', () => {
+      const entityName = 'Todo';
+      const qb = orm.em.createQueryBuilder(entityName);
       const whereInput = {
         name: { _contains: 'Carlos' },
         assignee: {
@@ -172,7 +186,7 @@ describe('GqlToQueryBuilderHelper', () => {
             },
           },
           {
-            'assignee.email': {
+            'e1.email': {
               $eq: 'carlos.rgn@gmail.com',
             },
           },
@@ -180,8 +194,8 @@ describe('GqlToQueryBuilderHelper', () => {
       };
       const joinConfigs: any[] = [];
       const whereObj = gqlToQueryBuilderHelper['generateWhereObject'](
-        metadata,
-        'Todo',
+        qb,
+        entityName,
         whereInput,
         joinConfigs,
       );
@@ -189,6 +203,8 @@ describe('GqlToQueryBuilderHelper', () => {
       expect(whereObj).toEqual(expectedWhereObject);
     });
     it('one field and a relationship with one OR operator with two fields', () => {
+      const entityName = 'Todo';
+      const qb = orm.em.createQueryBuilder(entityName);
       const whereInput = {
         name: { _contains: 'Carlos' },
         assignee: {
@@ -203,16 +219,16 @@ describe('GqlToQueryBuilderHelper', () => {
           { name: { $like: '%Carlos%' } },
           {
             $or: [
-              { 'assignee.email': { $eq: 'carlos.rgn@gmail.com' } },
-              { 'assignee.name': { $like: '%carlos%' } },
+              { 'e1.email': { $eq: 'carlos.rgn@gmail.com' } },
+              { 'e1.name': { $like: '%carlos%' } },
             ],
           },
         ],
       };
       const joinConfigs: any[] = [];
       const whereObj = gqlToQueryBuilderHelper['generateWhereObject'](
-        metadata,
-        'Todo',
+        qb,
+        entityName,
         whereInput,
         joinConfigs,
       );
@@ -220,6 +236,8 @@ describe('GqlToQueryBuilderHelper', () => {
       expect(whereObj).toEqual(expectedWhereObject);
     });
     it('one field and one OR operator with one field and two relationship fields', () => {
+      const entityName = 'Todo';
+      const qb = orm.em.createQueryBuilder(entityName);
       const whereInput = {
         name: { _contains: 'Carlos' },
         _or: {
@@ -236,16 +254,16 @@ describe('GqlToQueryBuilderHelper', () => {
           {
             $or: [
               { description: { $like: '%some description%' } },
-              { 'assignee.email': { $eq: 'carlos.rgn@gmail.com' } },
-              { 'assignee.name': { $like: '%carlos%' } },
+              { 'e1.email': { $eq: 'carlos.rgn@gmail.com' } },
+              { 'e1.name': { $like: '%carlos%' } },
             ],
           },
         ],
       };
       const joinConfigs: any[] = [];
       const whereObj = gqlToQueryBuilderHelper['generateWhereObject'](
-        metadata,
-        'Todo',
+        qb,
+        entityName,
         whereInput,
         joinConfigs,
       );

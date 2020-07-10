@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { QueryBuilder, QueryOrderMap } from 'mikro-orm';
 import { MetadataStorage } from 'mikro-orm/dist/metadata';
 import { QBFilterQuery } from 'mikro-orm/dist/typings';
-import { QueryBuilder, QueryOrderMap, EntityManager } from 'mikro-orm';
 
 export interface JoinConfig {
   field: string;
@@ -13,8 +13,6 @@ export interface JoinConfig {
 
 @Injectable()
 export class GqlToQueryBuilderHelper {
-  constructor(private em: EntityManager) {}
-
   private transformCondition(operator: string, operand?: any): [string, any] {
     if (operator === '_contains') {
       return ['$like', `%${operand}%`];
@@ -23,7 +21,7 @@ export class GqlToQueryBuilderHelper {
   }
 
   private walkFields(
-    metadata: MetadataStorage,
+    queryBuilder: QueryBuilder,
     entityName: string,
     relationFieldName: string | null,
     whereOrOrderByInput: Record<string, any>,
@@ -36,6 +34,7 @@ export class GqlToQueryBuilderHelper {
       fieldObj: any,
     ) => boolean,
   ): void {
+    const metadata: MetadataStorage = queryBuilder['metadata'];
     for (const [fieldName, fieldObj] of Object.entries(whereOrOrderByInput)) {
       const fieldMetadata = metadata.get(entityName).properties[fieldName];
       if (!fieldMetadata) {
@@ -61,12 +60,12 @@ export class GqlToQueryBuilderHelper {
           if (!joinConfigs.some(jc => jc.field === fieldName)) {
             joinConfigs.push({
               field: fieldName,
-              alias: fieldName,
+              alias: queryBuilder.getNextAlias(),
             });
           }
           const { type: nextEntityName } = fieldMetadata;
           this.walkFields(
-            metadata,
+            queryBuilder,
             nextEntityName,
             fieldName,
             fieldObj,
@@ -80,7 +79,7 @@ export class GqlToQueryBuilderHelper {
   }
 
   private generateWhereObject(
-    metadata: MetadataStorage,
+    queryBuilder: QueryBuilder,
     entityName: string,
     whereInput: Record<string, any>,
     joinConfigs: JoinConfig[],
@@ -89,7 +88,7 @@ export class GqlToQueryBuilderHelper {
   ): Record<string, any[]> {
     const conditionsTarget = Object.values(whereObj)[0];
     this.walkFields(
-      metadata,
+      queryBuilder,
       entityName,
       relationFieldName ?? null,
       whereInput,
@@ -110,7 +109,7 @@ export class GqlToQueryBuilderHelper {
         if (['_and', '_or'].includes(fieldName)) {
           const [finalOperator] = this.transformCondition(fieldName);
           const nestedWhereObj = this.generateWhereObject(
-            metadata,
+            queryBuilder,
             entityName,
             fieldObj,
             joinConfigs,
@@ -127,14 +126,14 @@ export class GqlToQueryBuilderHelper {
   }
 
   private generateOrderByObject(
-    metadata: MetadataStorage,
+    queryBuilder: QueryBuilder,
     entityName: string,
     orderByInput: Record<string, any>,
     joinConfigs: JoinConfig[],
   ) {
     const orderByObj: Record<string, any> = {};
     this.walkFields(
-      metadata,
+      queryBuilder,
       entityName,
       null,
       orderByInput,
@@ -147,36 +146,35 @@ export class GqlToQueryBuilderHelper {
   }
 
   configureQueryBuilder(
-    qb: QueryBuilder,
+    queryBuilder: QueryBuilder,
     whereInput?: any,
     orderByInput?: any,
   ) {
-    const metadata = this.em.getMetadata();
-    const entityName = qb['entityName'];
+    const entityName: string = queryBuilder['entityName'];
     const joinConfigs: JoinConfig[] = [];
     let whereObj: object | null = null;
     let orderByObj: QueryOrderMap | null = null;
     if (whereInput) {
       whereObj = this.generateWhereObject(
-        metadata,
+        queryBuilder,
         entityName,
         whereInput,
         joinConfigs,
       );
-      qb.where(whereObj);
+      queryBuilder.where(whereObj);
     }
     if (orderByInput) {
       orderByObj = this.generateOrderByObject(
-        metadata,
+        queryBuilder,
         entityName,
         orderByInput,
         joinConfigs,
       );
-      qb.orderBy(orderByObj);
+      queryBuilder.orderBy(orderByObj);
     }
     for (const joinConfig of joinConfigs) {
       const { field, alias, cond, type, path } = joinConfig;
-      qb.join(field, alias, cond, type, path);
+      queryBuilder.join(field, alias, cond, type, path);
     }
   }
 }
