@@ -1,6 +1,5 @@
 import { TestingModule, Test } from '@nestjs/testing';
-import { MikroORM, QueryBuilder } from 'mikro-orm';
-import { MetadataStorage } from 'mikro-orm/dist/metadata';
+import { MikroORM } from 'mikro-orm';
 import { MikroOrmModule } from 'nestjs-mikro-orm';
 import { Todo } from '../todos/todo.entity';
 import { User } from '../users/user.entity';
@@ -9,7 +8,6 @@ import { GqlToQueryBuilderHelper } from './gql-to-querybuilder.helper';
 describe('GqlToQueryBuilderHelper', () => {
   let orm: MikroORM;
   let gqlToQueryBuilderHelper: GqlToQueryBuilderHelper;
-  let metadata: MetadataStorage;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -29,7 +27,6 @@ describe('GqlToQueryBuilderHelper', () => {
     gqlToQueryBuilderHelper = module.get<GqlToQueryBuilderHelper>(
       GqlToQueryBuilderHelper,
     );
-    metadata = orm.getMetadata();
   });
 
   afterEach(async () => {

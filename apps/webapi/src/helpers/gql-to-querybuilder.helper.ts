@@ -22,7 +22,7 @@ export class GqlToQueryBuilderHelper {
 
   private walkFields(
     queryBuilder: QueryBuilder,
-    entityName: string,
+    currentEntityName: string,
     relationFieldName: string | null,
     whereOrOrderByInput: Record<string, any>,
     joinConfigs: JoinConfig[],
@@ -36,19 +36,21 @@ export class GqlToQueryBuilderHelper {
   ): void {
     const metadata: MetadataStorage = queryBuilder['metadata'];
     for (const [fieldName, fieldObj] of Object.entries(whereOrOrderByInput)) {
-      const fieldMetadata = metadata.get(entityName).properties[fieldName];
+      const fieldMetadata = metadata.get(currentEntityName).properties[
+        fieldName
+      ];
       if (!fieldMetadata) {
         if (
           !handleUnknownField ||
           handleUnknownField(
-            entityName,
+            currentEntityName,
             relationFieldName,
             fieldName,
             fieldObj,
           ) === false
         ) {
           throw new Error(
-            `${fieldName} field not found in ${entityName} entity`,
+            `${fieldName} field not found in ${currentEntityName} entity`,
           );
         }
       } else {
@@ -80,7 +82,7 @@ export class GqlToQueryBuilderHelper {
 
   private generateWhereObject(
     queryBuilder: QueryBuilder,
-    entityName: string,
+    currentEntityName: string,
     whereInput: Record<string, any>,
     joinConfigs: JoinConfig[],
     whereObj: Record<string, any[]> = { $and: [] },
@@ -89,7 +91,7 @@ export class GqlToQueryBuilderHelper {
     const conditionsTarget = Object.values(whereObj)[0];
     this.walkFields(
       queryBuilder,
-      entityName,
+      currentEntityName,
       relationFieldName ?? null,
       whereInput,
       joinConfigs,
@@ -127,14 +129,14 @@ export class GqlToQueryBuilderHelper {
 
   private generateOrderByObject(
     queryBuilder: QueryBuilder,
-    entityName: string,
+    currentEntityName: string,
     orderByInput: Record<string, any>,
     joinConfigs: JoinConfig[],
   ) {
     const orderByObj: Record<string, any> = {};
     this.walkFields(
       queryBuilder,
-      entityName,
+      currentEntityName,
       null,
       orderByInput,
       joinConfigs,
